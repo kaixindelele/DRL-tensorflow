@@ -7,3 +7,5 @@
     5、出现暂停的时候，在console那儿，输入c,然后输入，就可以继续运行了
 Git is a version control system.
 Git is free software.
+Git is a distributed version control system.
+Git is free software distributed under the GPL.
