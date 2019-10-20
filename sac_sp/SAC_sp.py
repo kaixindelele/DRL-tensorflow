@@ -46,7 +46,7 @@ class ReplayBuffer:
 
 def sac(env_fn, actor_critic=core.mlp_actor_critic,
         ac_kwargs=dict(), seed=0,
-        steps_per_epoch=5000, epochs=100,
+        steps_per_epoch=5000, epochs=600,
         replay_size=int(1e6), gamma=0.99,
         polyak=0.995, lr=1e-3, alpha=0.2,
         batch_size=100, start_steps=10000,
