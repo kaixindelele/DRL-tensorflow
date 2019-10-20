@@ -63,7 +63,7 @@ def sac(env_fn, actor_critic=core.mlp_actor_critic,
     act_limit = env.action_space.high[0]
 
     # Share information about action space with policy architecture
-    ac_kwargs['action_space'] = env.action_space
+    ac_kwargs['action_space'] = env.action_space.high[0]
 
     # Inputs to computation graph
     x_ph, a_ph, x2_ph, r_ph, d_ph = core.placeholders(obs_dim, act_dim, obs_dim, None, None)
