@@ -271,6 +271,7 @@ if __name__ == '__main__':
 
                 break
 
+    import matplotlib.pyplot as plt
     plt.plot(ep_reward_list)
     plt.show()
     plt.plot(test_ep_reward_list)
