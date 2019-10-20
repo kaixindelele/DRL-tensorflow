@@ -46,12 +46,9 @@ TD3 (Twin Delayed DDPG)
 """
 
 
-
-
-
 def td3(env_fn, mlp_actor_critic=core.mlp_actor_critic,
         ac_kwargs=dict(), seed=0,
-        steps_per_epoch=5000, epochs=100,
+        steps_per_epoch=5000, epochs=250,
         replay_size=int(1e6), gamma=0.99,
         polyak=0.995, pi_lr=1e-3, q_lr=1e-3,
         batch_size=100, start_steps=10000,
@@ -70,7 +67,7 @@ def td3(env_fn, mlp_actor_critic=core.mlp_actor_critic,
     act_limit = env.action_space.high[0]
 
     # Share information about action space with policy architecture
-    ac_kwargs['action_space'] = env.action_space
+    ac_kwargs['action_space'] = env.action_space.high[0]
 
     # Inputs to computation graph
     x_ph, a_ph, x2_ph, r_ph, d_ph = core.placeholders(obs_dim, act_dim, obs_dim, None, None)
@@ -235,12 +232,12 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--env', type=str, default='HalfCheetah-v2')
+    parser.add_argument('--env', type=str, default='Hopper-v2')
     parser.add_argument('--hid', type=int, default=300)
     parser.add_argument('--l', type=int, default=1)
     parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--seed', '-s', type=int, default=3)
-    parser.add_argument('--epochs', type=int, default=50)
+    parser.add_argument('--epochs', type=int, default=250)
     parser.add_argument('--exp_name', type=str, default='td3')
     args = parser.parse_args()
 

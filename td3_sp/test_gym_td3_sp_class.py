@@ -11,7 +11,7 @@ MAX_EPISODES = 250
 MAX_EP_STEPS = 1000
 
 RENDER = False
-ENV_NAME = 'HalfCheetah-v2'
+ENV_NAME = 'Hopper-v2'
 
 
 def test_agent(net, env, n=10):
@@ -33,7 +33,7 @@ def main():
 
     env = gym.make(ENV_NAME)
     env = env.unwrapped
-    env.seed(3)
+    env.seed(4)
 
     s_dim = env.observation_space.shape[0]
     a_dim = env.action_space.shape[0]
