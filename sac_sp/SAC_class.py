@@ -169,6 +169,28 @@ class SAC:
         outs = self.sess.run(self.step_ops,feed_dict)
         self.learn_step += 1
 
+    def load_step_network(self, saver, load_path):
+        checkpoint = tf.train.get_checkpoint_state(load_path)
+        if checkpoint and checkpoint.model_checkpoint_path:
+            saver.restore(self.sess, tf.train.latest_checkpoint(load_path))
+            print("Successfully loaded:", checkpoint.model_checkpoint_path)
+            self.learn_step = int(checkpoint.model_checkpoint_path.split('-')[-1])
+        else:
+            print("Could not find old network weights")
+
+    def save_step_network(self, time_step, saver, save_path):
+        saver.save(self.sess, save_path + 'network', global_step=time_step,
+                   write_meta_graph=False)
+
+    def load_simple_network(self, path):
+        saver = tf.train.Saver()
+        saver.restore(self.sess, tf.train.latest_checkpoint(path))
+        print("restore model successful")
+
+    def save_simple_network(self, save_path):
+        saver = tf.train.Saver()
+        saver.save(self.sess, save_path=save_path + "/params", write_meta_graph=False)
+
 
 if __name__ == '__main__':
     import argparse
@@ -180,11 +202,71 @@ if __name__ == '__main__':
     parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--seed', '-s', type=int, default=3)
     parser.add_argument('--epochs', type=int, default=50)
+    parser.add_argument('--max_steps', type=int, default=1000)
     parser.add_argument('--exp_name', type=str, default='td3')
     args = parser.parse_args()
 
-    td3(lambda: gym.make(args.env), mlp_actor_critic=core.mlp_actor_critic,
-        ac_kwargs=dict(hidden_sizes=[args.hid] * args.l),
-        gamma=args.gamma, seed=args.seed, epochs=args.epochs,
-        )
+    env = gym.make(args.env)
+    env = env.unwrapped
+    env.seed(args.seed)
 
+    s_dim = env.observation_space.shape[0]
+    a_dim = env.action_space.shape[0]
+    a_bound = env.action_space.high[0]
+
+    net = SAC(a_dim, s_dim, a_bound,
+              batch_size=100,
+              )
+    ep_reward_list = []
+    test_ep_reward_list = []
+
+    for i in range(args.epochs):
+        s = env.reset()
+        ep_reward = 0
+        for j in range(args.max_steps):
+
+            # Add exploration noise
+            if i < 10:
+                a = np.random.rand(a_dim) * a_bound
+            else:
+                # a = net.choose_action(s)
+                a = net.get_action(s, 0.1)
+            # a = noise.add_noise(a)
+
+            a = np.clip(a, -a_bound, a_bound)
+
+            s_, r, done, info = env.step(a)
+            done = False if j == args.max_steps - 1 else done
+
+            net.store_transition((s, a, r, s_, done))
+
+            s = s_
+            ep_reward += r
+            if j == args.max_steps - 1:
+
+                for _ in range(args.max_steps):
+                    net.learn()
+
+                ep_reward_list.append(ep_reward)
+                print('Episode:', i, ' Reward: %i' % int(ep_reward),
+                      # 'Explore: %.2f' % var,
+                      "learn step:", net.learn_step)
+                # if ep_reward > -300:RENDER = True
+
+                # 增加测试部分!
+                if i % 20 == 0:
+                    test_ep_reward = net.test_agent(net=net, env=env, n=5)
+                    test_ep_reward_list.append(test_ep_reward)
+                    print("-" * 20)
+                    print('Episode:', i, ' Reward: %i' % int(ep_reward),
+                          'Test Reward: %i' % int(test_ep_reward),
+                          )
+                    print("-" * 20)
+
+                break
+
+    import matplotlib.pyplot as plt
+    plt.plot(ep_reward_list)
+    plt.show()
+    plt.plot(test_ep_reward_list)
+    plt.show()
