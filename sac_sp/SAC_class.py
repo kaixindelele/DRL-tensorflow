@@ -151,7 +151,7 @@ class SAC:
             ep_reward = 0
             for i in range(max_ep_len):
                 # Take deterministic actions at test time (noise_scale=0)
-                s, r, d, _ = env.step(self.choose_action(s))
+                s, r, d, _ = env.step(self.get_action(s))
                 ep_reward += r
             ep_reward_list.append(ep_reward)
         mean_ep_reward = np.mean(np.array(ep_reward_list))
@@ -255,7 +255,7 @@ if __name__ == '__main__':
 
                 # 增加测试部分!
                 if i % 20 == 0:
-                    test_ep_reward = net.test_agent(net=net, env=env, n=5)
+                    test_ep_reward = net.test_agent(env=env, n=5)
                     test_ep_reward_list.append(test_ep_reward)
                     print("-" * 20)
                     print('Episode:', i, ' Reward: %i' % int(ep_reward),
