@@ -33,7 +33,10 @@ def main():
 
     env = gym.make(ENV_NAME)
     env = env.unwrapped
-    env.seed(4)
+	seed=4
+    env.seed(seed)
+	tf.set_random_seed(seed=seed)
+    np.random.seed(seed=seed)
 
     s_dim = env.observation_space.shape[0]
     a_dim = env.action_space.shape[0]

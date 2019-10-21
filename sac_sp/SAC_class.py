@@ -209,6 +209,8 @@ if __name__ == '__main__':
     env = gym.make(args.env)
     env = env.unwrapped
     env.seed(args.seed)
+	tf.set_random_seed(args.seed)
+    np.random.seed(args.seed)
 
     s_dim = env.observation_space.shape[0]
     a_dim = env.action_space.shape[0]
