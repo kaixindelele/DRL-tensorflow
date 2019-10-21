@@ -201,23 +201,22 @@ class TD3:
 if __name__ == '__main__':
     import argparse
 
+    random_seed = int(time.time() * 1000 % 1000)
     parser = argparse.ArgumentParser()
     parser.add_argument('--env', type=str, default='HalfCheetah-v2')
     parser.add_argument('--hid', type=int, default=300)
     parser.add_argument('--l', type=int, default=1)
     parser.add_argument('--gamma', type=float, default=0.99)
-    parser.add_argument('--seed', '-s', type=int, default=3)
-    parser.add_argument('--epochs', type=int, default=50)
+    parser.add_argument('--seed', '-s', type=int, default=random_seed)
+    parser.add_argument('--epochs', type=int, default=3000)
     parser.add_argument('--max_steps', type=int, default=1000)
-    parser.add_argument('--exp_name', type=str, default='td3')
+    parser.add_argument('--exp_name', type=str, default='td3_class')
     args = parser.parse_args()
 
     env = gym.make(args.env)
     env = env.unwrapped
     env.seed(args.seed)
-	tf.set_random_seed(args.seed)
-    np.random.seed(args.seed)
-	
+
     s_dim = env.observation_space.shape[0]
     a_dim = env.action_space.shape[0]
     a_bound = env.action_space.high[0]
@@ -274,8 +273,18 @@ if __name__ == '__main__':
                 break
 
     import matplotlib.pyplot as plt
+
     plt.plot(ep_reward_list)
+    img_name = str(args.exp_name + "_" + args.env + "_epochs" +
+                   str(args.epochs) +
+                   "_seed" + str(args.seed))
+    plt.title(img_name + "_train")
+    plt.savefig(img_name + ".png")
     plt.show()
+    plt.close()
+
     plt.plot(test_ep_reward_list)
+    plt.title(img_name + "_test")
+    plt.savefig(img_name + ".png")
     plt.show()
 

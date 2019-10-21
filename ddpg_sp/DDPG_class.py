@@ -4,13 +4,13 @@ import gym
 import time
 import sys
 sys.path.append("../")
-from sac_sp import core
-from sac_sp.core import get_vars, mlp_actor_critic
+from ddpg_sp import core
+from ddpg_sp.core import get_vars, mlp_actor_critic
 
 
 class ReplayBuffer:
     """
-    A simple FIFO experience replay buffer for SAC agents.
+    A simple FIFO experience replay buffer for TD3 agents.
     """
 
     def __init__(self, obs_dim, act_dim, size):
@@ -39,15 +39,14 @@ class ReplayBuffer:
                     done=self.done_buf[idxs])
 
 
-class SAC:
+class DDPG:
     def __init__(self,
                  a_dim, obs_dim, a_bound,
                  mlp_actor_critic=core.mlp_actor_critic,
                  ac_kwargs=dict(), seed=0,
 
                  replay_size=int(1e6), gamma=0.99,
-                 polyak=0.995, alpha=0.2,
-                 pi_lr=1e-3, q_lr=1e-3,
+                 polyak=0.995, pi_lr=1e-3, q_lr=1e-3,
                  batch_size=100,
                  # start_steps=10000,
                  act_noise=0.1, target_noise=0.2,
@@ -72,56 +71,37 @@ class SAC:
 
         # Main outputs from computation graph
         with tf.variable_scope('main'):
-            self.mu, self.pi, logp_pi, q1, q2, q1_pi, q2_pi, v = mlp_actor_critic(self.x_ph, self.a_ph, **ac_kwargs)
+            self.pi, self.q, q_pi = mlp_actor_critic(self.x_ph, self.a_ph, **ac_kwargs)
 
-        # Target value network
+        # Target networks
         with tf.variable_scope('target'):
-            _, _, _, _, _, _, _, v_targ = mlp_actor_critic(self.x2_ph, self.a_ph, **ac_kwargs)
+            # Note that the action placeholder going to actor_critic here is
+            # irrelevant, because we only need q_targ(s, pi_targ(s)).
+            pi_targ, _, q_pi_targ = mlp_actor_critic(self.x2_ph, self.a_ph, **ac_kwargs)
 
         # Experience buffer
         self.replay_buffer = ReplayBuffer(obs_dim=obs_dim, act_dim=self.act_dim, size=replay_size)
 
         # Count variables
-        var_counts = tuple(core.count_vars(scope) for scope in
-                           ['main/pi', 'main/q1', 'main/q2', 'main/v', 'main'])
-        print(('\nNumber of parameters: \t pi: %d, \t' + \
-               'q1: %d, \t q2: %d, \t v: %d, \t total: %d\n') % var_counts)
+        var_counts = tuple(core.count_vars(scope) for scope in ['main/pi', 'main/q', 'main'])
+        print('\nNumber of parameters: \t pi: %d, \t q: %d, \t total: %d\n' % var_counts)
 
-        # Min Double-Q:
-        min_q_pi = tf.minimum(q1_pi, q2_pi)
+        # Bellman backup for Q function
+        backup = tf.stop_gradient(self.r_ph + gamma * (1 - self.d_ph) * q_pi_targ)
 
-        # Targets for Q and V regression
-        q_backup = tf.stop_gradient(self.r_ph + gamma * (1 - self.d_ph) * v_targ)
-        v_backup = tf.stop_gradient(min_q_pi - alpha * logp_pi)
+        # DDPG losses
+        self.pi_loss = -tf.reduce_mean(q_pi)
+        self.q_loss = tf.reduce_mean((self.q - backup) ** 2)
 
-        # Soft actor-critic losses
-        pi_loss = tf.reduce_mean(alpha * logp_pi - q1_pi)
-        q1_loss = 0.5 * tf.reduce_mean((q_backup - q1) ** 2)
-        q2_loss = 0.5 * tf.reduce_mean((q_backup - q2) ** 2)
-        v_loss = 0.5 * tf.reduce_mean((v_backup - v) ** 2)
-        value_loss = q1_loss + q2_loss + v_loss
-
-        # Policy train op
-        # (has to be separate from value train op, because q1_pi appears in pi_loss)
+        # Separate train ops for pi, q
         pi_optimizer = tf.train.AdamOptimizer(learning_rate=pi_lr)
-        self.train_pi_op = pi_optimizer.minimize(pi_loss, var_list=get_vars('main/pi'))
-
-        # Value train op
-        # (control dep of train_pi_op because sess.run otherwise evaluates in nondeterministic order)
-        value_optimizer = tf.train.AdamOptimizer(learning_rate=q_lr)
-        value_params = get_vars('main/q') + get_vars('main/v')
-        with tf.control_dependencies([self.train_pi_op]):
-            self.train_value_op = value_optimizer.minimize(value_loss, var_list=value_params)
+        q_optimizer = tf.train.AdamOptimizer(learning_rate=q_lr)
+        self.train_pi_op = pi_optimizer.minimize(self.pi_loss, var_list=get_vars('main/pi'))
+        self.train_q_op = q_optimizer.minimize(self.q_loss, var_list=get_vars('main/q'))
 
         # Polyak averaging for target variables
-        # (control flow because sess.run otherwise evaluates in nondeterministic order)
-        with tf.control_dependencies([self.train_value_op]):
-            target_update = tf.group([tf.assign(v_targ, polyak * v_targ + (1 - polyak) * v_main)
-                                      for v_main, v_targ in zip(get_vars('main'), get_vars('target'))])
-
-        # All ops to call during one training step
-        self.step_ops = [pi_loss, q1_loss, q2_loss, v_loss, q1, q2, v, logp_pi,
-                         self.train_pi_op, self.train_value_op, target_update]
+        self.target_update = tf.group([tf.assign(v_targ, polyak * v_targ + (1 - polyak) * v_main)
+                                  for v_main, v_targ in zip(get_vars('main'), get_vars('target'))])
 
         # Initializing targets to match main variables
         target_init = tf.group([tf.assign(v_targ, v_main)
@@ -133,10 +113,8 @@ class SAC:
 
     def get_action(self, s, noise_scale=0):
         if not noise_scale:
-            act_op = self.mu
-        else:
-            act_op = self.pi
-        a = self.sess.run(act_op, feed_dict={self.x_ph: s.reshape(1, -1)})[0]
+            noise_scale = self.action_noise
+        a = self.sess.run(self.pi, feed_dict={self.x_ph: s.reshape(1, -1)})[0]
         a += noise_scale * np.random.randn(self.act_dim)
         return np.clip(a, -self.act_limit, self.act_limit)
 
@@ -166,7 +144,14 @@ class SAC:
                      self.r_ph: batch['rews'],
                      self.d_ph: batch['done']
                      }
-        outs = self.sess.run(self.step_ops,feed_dict)
+        q_step_ops = [self.train_q_op]
+
+        # Q-learning update
+        outs = self.sess.run([self.q_loss, self.q, self.train_q_op], feed_dict)
+        # Policy update
+        outs = self.sess.run([self.pi_loss, self.train_pi_op, self.target_update],
+                        feed_dict)
+
         self.learn_step += 1
 
     def load_step_network(self, saver, load_path):
@@ -204,7 +189,7 @@ if __name__ == '__main__':
     parser.add_argument('--seed', '-s', type=int, default=random_seed)
     parser.add_argument('--epochs', type=int, default=3000)
     parser.add_argument('--max_steps', type=int, default=1000)
-    parser.add_argument('--exp_name', type=str, default='sac_class')
+    parser.add_argument('--exp_name', type=str, default='ddpg_class')
     args = parser.parse_args()
 
     env = gym.make(args.env)
@@ -215,7 +200,7 @@ if __name__ == '__main__':
     a_dim = env.action_space.shape[0]
     a_bound = env.action_space.high[0]
 
-    net = SAC(a_dim, s_dim, a_bound,
+    net = DDPG(a_dim, s_dim, a_bound,
               batch_size=100,
               )
     ep_reward_list = []
@@ -272,8 +257,8 @@ if __name__ == '__main__':
     img_name = str(args.exp_name + "_" + args.env + "_epochs" +
                    str(args.epochs) +
                    "_seed" + str(args.seed))
-    plt.title(img_name + "_train")
-    plt.savefig(img_name + ".png")
+    plt.title(img_name+"_train")
+    plt.savefig(img_name+".png")
     plt.show()
     plt.close()
 
