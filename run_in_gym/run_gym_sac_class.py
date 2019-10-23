@@ -67,7 +67,7 @@ def main():
     tf.reset_default_graph()
 
     # 实例化log函数!	
-	exp_name = = 'sac_{}_alpha_{}_noise_{}'.format(
+    exp_name = 'sac_{}_alpha_{}_noise_{}'.format(
         args.env,
         args.alpha,
         args.noise,
