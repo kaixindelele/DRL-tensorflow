@@ -66,8 +66,13 @@ def main():
 
     tf.reset_default_graph()
 
-    # 实例化log函数!
-	exp_name = args.exp_name + args.env + "_alpha_" + str(args.alpha)
+    # 实例化log函数!	
+	exp_name = = 'sac_{}_alpha_{}_noise_{}'.format(
+        args.env,
+        args.alpha,
+        args.noise,
+        )
+	
     logger_kwargs = setup_logger_kwargs(exp_name=exp_name,
                                         seed=args.seed,
                                         output_dir="../sp_data_logs/")
