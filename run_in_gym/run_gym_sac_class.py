@@ -144,6 +144,7 @@ def main():
                     test_ep_reward_list.append(test_ep_reward)
 
                     logger.log_tabular('Epoch', i)
+					# 不用with_min_and_max的时候，就不会有AverageEpRet这个值~画图的时候会找不到~
                     logger.log_tabular('EpRet', with_min_and_max=True)
                     logger.log_tabular('TestEpRet', with_min_and_max=True)
                     logger.log_tabular('TotalEnvInteracts', i*args.max_steps+j)
