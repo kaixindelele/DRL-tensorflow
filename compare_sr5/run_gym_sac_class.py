@@ -4,7 +4,7 @@ import time
 import argparse
 import os
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import tensorflow as tf
 import sys
 
@@ -31,11 +31,7 @@ def test_agent(args, net, env, n=5, logger=None):
         ep_reward = 0
         for i in range(args.max_steps):
             # Take deterministic actions at test time (noise_scale=0)
-            s = np.hstack((obs['gripper_site_pos'],
-                                    obs['joint_pos'],
-                                    obs['robot-state'],
-                                    obs["object-state"],
-                                    ))
+            s = obs
 
             a = net.get_action(s)
             obs, r_total, d, _ = env.step(a)
