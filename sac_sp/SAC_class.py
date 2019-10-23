@@ -137,7 +137,7 @@ class SAC:
         else:
             act_op = self.pi
         a = self.sess.run(act_op, feed_dict={self.x_ph: s.reshape(1, -1)})[0]
-        a += noise_scale * np.random.randn(self.act_dim)
+        
         return np.clip(a, -self.act_limit, self.act_limit)
 
     def store_transition(self, transition):

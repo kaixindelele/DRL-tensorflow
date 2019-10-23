@@ -187,7 +187,7 @@ if __name__ == '__main__':
     parser.add_argument('--l', type=int, default=1)
     parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--seed', '-s', type=int, default=random_seed)
-    parser.add_argument('--epochs', type=int, default=3000)
+    parser.add_argument('--epochs', type=int, default=200)
     parser.add_argument('--max_steps', type=int, default=1000)
     parser.add_argument('--exp_name', type=str, default='ddpg_class')
     args = parser.parse_args()
