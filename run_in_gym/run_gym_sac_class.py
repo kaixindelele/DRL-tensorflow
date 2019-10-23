@@ -71,6 +71,7 @@ def main():
     logger_kwargs = setup_logger_kwargs(exp_name=exp_name,
                                         seed=args.seed,
                                         output_dir="../sp_data_logs/")
+    # 将字典传进去
     logger = EpochLogger(**logger_kwargs)
 
     print("locals():", locals())
@@ -124,7 +125,7 @@ def main():
             s = s_
             ep_reward += r
             if j == args.max_steps - 1:
-                # 存episode reward.
+                # 存episode reward.这里安心的存进去就好，到时候它会自己计算均值
                 logger.store(EpRet=ep_reward)
                 for _ in range(args.max_steps):
                     net.learn()
@@ -145,6 +146,7 @@ def main():
 
                     logger.log_tabular('Epoch', i)
 					# 不用with_min_and_max的时候，就不会有AverageEpRet这个值~画图的时候会找不到~
+					# 每个test都打印一次，如果已经存过的就不用管了，没存过的，赋值就行
                     logger.log_tabular('EpRet', with_min_and_max=True)
                     logger.log_tabular('TestEpRet', with_min_and_max=True)
                     logger.log_tabular('TotalEnvInteracts', i*args.max_steps+j)
