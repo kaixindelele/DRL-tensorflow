@@ -33,8 +33,8 @@ def test_agent(args, net, env, n=5, logger=None):
             obs, r, d, _ = env.step(a)            
 
             ep_reward += r
-            if logger:
-                logger.store(TestEpRet=ep_reward)
+        if logger:
+            logger.store(TestEpRet=ep_reward)
 
         ep_reward_list.append(ep_reward)
     mean_ep_reward = np.mean(np.array(ep_reward_list))
