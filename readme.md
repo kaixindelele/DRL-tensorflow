@@ -1,3 +1,23 @@
+--
+
+2020-12-09
+
+发现这是我获得star最多的一个项目了。
+
+刚才过了一遍所有的文件，发现优先经验回放PER没有单独抽取出来，还是和DDPG打包在一起的，这样会导致不能和TD3，SAC兼容。
+
+另外sac-auto也没有提交。
+
+事后经验回放HER没有实现（我到现在还没有调出最好的参数，贼烦，我本以为her是灵丹妙药，没想到不过如此）。
+
+另外继续搞tf1感觉有种49年入国军的错觉。
+
+难顶
+
+--
+
+
+
 # DRL-tensorflow
 My DRL library with tensorflow1.14
 core codes based on https://github.com/openai/spinningup
