@@ -141,7 +141,7 @@ class TD3:
         
         if self.per_flag:
             # 也许可以选q2,但是一般来说q1和q2值相差不大。
-            self.abs_errors = tf.abs(min_q_targ - self.q1)
+            self.abs_errors = tf.abs(backup - self.q1)
             # 是不是这么乘的，我也迷惑，等下测试一下，看看效果有没有提升。
             self.q_loss = self.ISWeights * (q1_loss + q2_loss)
         else:
