@@ -125,7 +125,7 @@ if __name__ == '__main__':
     seed = 184
     per_flag = True
 
-    rl_algo_list = ["DDPG", "SAC", "TD3"]
+    rl_algo_list = ["DDPG", "SAC_AUTO", "TD3", "SAC"]
     import rl_algorithms
     try:
         net = eval("rl_algorithms."+rl_algo_list[algo_index])
