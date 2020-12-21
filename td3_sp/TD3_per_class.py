@@ -19,7 +19,7 @@ import tensorflow as tf
 import gym
 import time
 from td3_sp import core
-from core import get_vars, mlp_actor_critic
+from td3_sp.core import get_vars, mlp_actor_critic
 
 
 class ReplayBuffer:
